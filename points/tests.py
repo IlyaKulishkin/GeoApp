@@ -3,7 +3,7 @@ from django.contrib.gis.geos import Point as GEOSPoint
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Point, Message
+from .models.api import Point, Message
 
 
 class GeoAPITestCase(TestCase):

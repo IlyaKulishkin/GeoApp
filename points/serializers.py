@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Point, Message
-from django.contrib.gis.geos import Point as GEOSPoint
-
+from .models.api import Point, Message
+from .services.point_service import create_point
+from .services.message_service import create_message
 
 class PointSerializer(serializers.ModelSerializer):
     latitude = serializers.FloatField(write_only=True)
@@ -12,23 +12,16 @@ class PointSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'latitude', 'longitude', 'created_at']
         read_only_fields = ['id', 'created_at']
 
-    def validate_latitude(self, value):
-        if not (-90 <= value <= 90):
-            raise serializers.ValidationError("Latitude must be between -90 and 90.")
-        return value
-
-    def validate_longitude(self, value):
-        if not (-180 <= value <= 180):
-            raise serializers.ValidationError("Longitude must be between -180 and 180.")
-        return value
-
     def create(self, validated_data):
         lat = validated_data.pop('latitude')
         lon = validated_data.pop('longitude')
-        location = GEOSPoint(lon, lat, srid=4326)
-        point = Point.objects.create(location=location, **validated_data)
-        return point
-
+        user = self.context['request'].user
+        return create_point(
+            name=validated_data['name'],
+            latitude=lat,
+            longitude=lon,
+            user=user
+        )
 
 class MessageSerializer(serializers.ModelSerializer):
     point_id = serializers.IntegerField(write_only=True)
@@ -38,13 +31,11 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = ['id', 'point_id', 'text', 'created_at']
         read_only_fields = ['id', 'created_at']
 
-    def validate_point_id(self, value):
-        if not Point.objects.filter(id=value).exists():
-            raise serializers.ValidationError("Point with this ID does not exist.")
-        return value
-
     def create(self, validated_data):
         point_id = validated_data.pop('point_id')
-        point = Point.objects.get(id=point_id)
-        message = Message.objects.create(point=point, **validated_data)
-        return message
+        author = self.context['request'].user
+        return create_message(
+            point_id=point_id,
+            text=validated_data['text'],
+            author=author
+        )

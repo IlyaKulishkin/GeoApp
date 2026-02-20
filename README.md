@@ -8,28 +8,31 @@
 
 ### Требования
 - Docker (рекомендуется)
-- Или Python 3.12+, GDAL, GEOS, PROJ, Spatialite (для локального запуска)
+- Или Python 3.12+, GDAL, GEOS, PROJ, Postgres, Wagtail
 
 ### Запуск через Docker
 
 ```bash
-# Сборка образа
-docker build -t geopointsapp .
-```
+# 1. Собрать образ
+docker-compose build
 
-```bash
-# Запуск контейнера
-docker run -d --name geoapp -p 8000:8000 geopointsapp
+# 2. Создать миграции
+docker-compose run --rm web python manage.py makemigrations
+
+# 3. Применить миграции
+docker-compose run --rm web python manage.py migrate
+
+# 4. Создать суперпользователя (опционально)
+docker-compose run --rm web python manage.py createsuperuser
+
+# 5. Запустить
+docker-compose up
 ```
 
 Приложение будет доступно по адресу:  
 👉 **http://localhost:8000**
 
-### Создание суперпользователя
 
-```bash
-docker exec -it geoapp python manage.py createsuperuser
-```
 ---
 
 ## 🧪 Тестирование

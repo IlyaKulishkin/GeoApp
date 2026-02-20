@@ -4,7 +4,7 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Point, Message
+from .models.api import Point, Message
 from .serializers import PointSerializer, MessageSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 

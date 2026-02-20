@@ -6,8 +6,7 @@ RUN apt-get update && apt-get install -y \
     gdal-bin \
     libgdal-dev \
     libgeos-dev \
-    spatialite-bin \
-    libsqlite3-mod-spatialite \
+    postgresql-client \ 
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
