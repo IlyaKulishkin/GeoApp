@@ -1,26 +1,27 @@
 services:
   db:
     image: postgis/postgis:16-3.4
-    environment:
-      POSTGRES_DB: geopoints
-      POSTGRES_USER: geouser
-      POSTGRES_PASSWORD: geopass
+    env_file: .env.local
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 1s
+      timeout: 5s
+      retries: 15
 
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    env_file: .env.local
     volumes:
       - .:/app
     ports:
       - "8000:8000"
     depends_on:
-      - db
-    environment:
-      - DATABASE_URL=postgres://geouser:geopass@db:5432/geopoints
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

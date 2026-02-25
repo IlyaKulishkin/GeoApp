@@ -8,22 +8,12 @@
 
 ### Требования
 - Docker (рекомендуется)
-- Или Python 3.12+, GDAL, GEOS, PROJ, Postgres, Wagtail
 
 ### Запуск через Docker
 
 ```bash
 # 1. Собрать образ
 docker-compose build
-
-# 2. Создать миграции
-docker-compose run --rm web python manage.py makemigrations
-
-# 3. Применить миграции
-docker-compose run --rm web python manage.py migrate
-
-# 4. Создать суперпользователя (опционально)
-docker-compose run --rm web python manage.py createsuperuser
 
 # 5. Запустить
 docker-compose up
@@ -32,6 +22,8 @@ docker-compose up
 Приложение будет доступно по адресу:  
 👉 **http://localhost:8000**
 
+👉 API: http://localhost:8000/api/docs/  
+👉 Wagtail CMS: http://localhost:8000/cms/  
 
 ---
 
@@ -175,16 +167,28 @@ curl -X GET "http://localhost:8000/api/messages/search/?latitude=55.75&longitude
 
 ---
 
+## Wagtail CMS
+
+### Управление данными
+- Точки и сообщения доступны в админке Wagtail:  
+Snippets → Points / Messages
+### Создание страниц
+Вы можете создавать GeoPage — страницы с:  
+- HTML-описанием 
+- Привязкой к существующим точкам
+---
+
 ## 🛠 Техническое описание
 
 ### Стек технологий
 - **Python** 3.12
 - **Django** 6.0
 - **Django REST Framework** 3.16
-- **GeoDjango** (с поддержкой Spatialite)
+- **GeoDjango + PostGIS**
+- **Wagtail 7+**
 - **djangorestframework-simplejwt** — аутентификация
 - **drf-spectacular** — генерация OpenAPI/Swagger
-- **SQLite + Spatialite** — база данных
+- **PostgreSQL + PostGIS** — база данных
 
 ### Архитектура
 - Модель `Point` содержит географическую точку (`PointField(srid=4326)`) и метаданные.
