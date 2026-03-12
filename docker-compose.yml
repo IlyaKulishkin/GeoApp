@@ -12,6 +12,13 @@ services:
       timeout: 5s
       retries: 15
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   web:
     build: .
     env_file: .env.local
@@ -22,6 +29,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
+    command: web
+
+  celery:
+    build: .
+    env_file: .env.local
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+    command: celery -A geopointsapp worker --loglevel=info
 
 volumes:
   postgres_data:
+  redis_data:

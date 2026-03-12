@@ -9,7 +9,7 @@ class PointSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Point
-        fields = ['id', 'name', 'latitude', 'longitude', 'created_at']
+        fields = ['id', 'name', 'address', 'latitude', 'longitude', 'created_at']
         read_only_fields = ['id', 'created_at']
 
     def create(self, validated_data):

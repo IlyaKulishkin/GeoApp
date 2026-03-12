@@ -1,5 +1,7 @@
 from django.contrib.gis.geos import Point as GEOSPoint
 from ..models.api import Point
+import logging
+logger = logging.getLogger(__name__)
 
 def create_point(*, name: str, latitude: float, longitude: float, user) -> Point:
     """Создаёт геоточку с валидацией координат."""
@@ -13,8 +15,12 @@ def create_point(*, name: str, latitude: float, longitude: float, user) -> Point
     if Point.objects.filter(location=location).exists():
         raise ValueError("A point already exists at these coordinates.")
     
-    return Point.objects.create(
+    point = Point.objects.create(
         name=name,
         location=location,
         created_by=user
     )
+
+    logger.info(f"Создана точка ID={point.id}. Сигнал запустит геокодирование.")
+
+    return point

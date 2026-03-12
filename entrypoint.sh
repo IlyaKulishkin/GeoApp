@@ -5,8 +5,10 @@ while ! pg_isready -h db -U geouser -d geopoints; do
   sleep 1
 done
 
-python manage.py migrate
+if [ "$1" = "web" ]; then
+    python manage.py migrate --noinput
+    python create_superuser.py
+    exec python manage.py runserver 0.0.0.0:8000
+fi
 
-python create_superuser.py
-
-python manage.py runserver 0.0.0.0:8000
+exec "$@"
