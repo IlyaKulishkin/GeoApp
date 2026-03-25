@@ -1,32 +1,25 @@
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 
-@hooks.register('register_admin_menu_item')
-def register_point_menu_item():
-    return MenuItem(
-        "Points",
-        "/cms/snippets/points/point/",
-        icon_name="snippet",
-        order=100
-    )
+def menu_item(label, url, icon, order):
+    def decorator(func):
+        @hooks.register('register_admin_menu_item')
+        def wrapper():
+            return MenuItem(label, url, icon_name=icon, order=order)
+        return wrapper
+    return decorator
 
-@hooks.register('register_admin_menu_item')
-def register_message_menu_item():
-    return MenuItem(
-        "Messages",
-        "/cms/snippets/points/message/",
-        icon_name="comment",
-        order=101
-    )
+@menu_item("Points", "/cms/snippets/points/point/", "snippet", 100)
+def register_points_menu():
+    pass
 
-@hooks.register('register_admin_menu_item')
-def register_geopage_menu_item():
-    return MenuItem(
-        'Geo Pages',
-        "/cms/pages",
-        icon_name='doc-full',
-        order=90
-    )
+@menu_item("Messages", "/cms/snippets/points/message/", "comment", 101)
+def register_messages_menu():
+    pass
+
+@menu_item("Geo Pages", "/cms/pages", "doc-full", 90)
+def register_geopages_menu():
+    pass
 
 @hooks.register('construct_main_menu')
 def hide_unwanted_menu_items(request, menu_items):
