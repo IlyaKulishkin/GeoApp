@@ -75,13 +75,16 @@ ROOT_URLCONF = 'geopointsapp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            BASE_DIR / 'templates',
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -175,3 +178,6 @@ DADATA_TOKEN = os.getenv('DADATA_TOKEN')
 
 WAGTAIL_SITE_NAME = "GeoApp"
 WAGTAILADMIN_BASE_URL = 'http://localhost:8000'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

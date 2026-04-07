@@ -4,7 +4,7 @@ from wagtail.fields import StreamField
 from wagtail.admin.panels import FieldPanel, InlinePanel
 from modelcluster.fields import ParentalKey
 
-from .blocks import SliderBlock, HeaderBlock
+from points.blocks import SliderBlock, HeaderBlock
 
 
 class GeoPagePoint(Orderable):
@@ -17,13 +17,13 @@ class GeoPagePoint(Orderable):
 
 class GeoPage(Page):
     content = StreamField([
-        ('slider', SliderBlock()),
         ('header', HeaderBlock(label="Заглавный блок")),
+        ('slider', SliderBlock()),
     ], blank=True)
 
     content_panels = Page.content_panels + [
-        InlinePanel('page_points', label="Points"),
         FieldPanel('content'),
+        InlinePanel('page_points', label="Points"),
     ]
 
     def __str__(self):

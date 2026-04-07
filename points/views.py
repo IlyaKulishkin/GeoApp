@@ -5,8 +5,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models.api import Point, Message
-from .serializers import PointSerializer, MessageSerializer
+from .serializers import PointSerializer, MessageSerializer, GeoPageListSerializer, GeoPageDetailSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from .models.cms import GeoPage, GeoPagePoint
 
 
 def validate_geo_params(lat, lon, radius):
@@ -140,3 +141,29 @@ def search_messages(request):
         result.append(data)
 
     return Response(result)
+
+
+@extend_schema(
+    summary="Список страниц",
+    description="Возвращает краткую информацию о опубликованных страницах"
+)
+class GeoPageListView(generics.ListAPIView):
+    serializer_class = GeoPageListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = GeoPage.objects.live().order_by('-first_published_at')
+
+        return queryset
+
+
+@extend_schema(summary="Детальная информация",
+               description="Полный контент страницы"
+)
+class GeoPageDetailView(generics.RetrieveAPIView):
+    queryset = GeoPage.objects.live()
+    serializer_class = GeoPageDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related('page_points__point')
