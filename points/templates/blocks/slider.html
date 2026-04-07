@@ -1,0 +1,13 @@
+{% load wagtailimages_tags %}
+<div class="slider-container" style="display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0;">
+    {% for item in value.slides %}
+        <div class="slide" style="flex: 0 0 auto; max-width: 300px;">
+            {% image item.image width-400 loading="lazy" style="width: 100%; height: auto; border-radius: 8px;" %}
+            {% if item.caption %}
+                <p class="caption" style="margin-top: 0.5rem; font-size: 0.9rem; color: #555;">{{ item.caption }}</p>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p>Нет слайдов для отображения.</p>
+    {% endfor %}
+</div>

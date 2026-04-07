@@ -1,0 +1,8 @@
+<div class="header-block" style="margin-bottom: 2rem;">
+    <h2 style="margin-bottom: 0.5rem;">{{ value.title }}</h2>
+    {% if value.description %}
+        <div class="description" style="line-height: 1.6;">
+            {{ value.description|richtext }}
+        </div>
+    {% endif %}
+</div>
