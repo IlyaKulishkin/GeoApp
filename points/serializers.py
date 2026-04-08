@@ -127,10 +127,9 @@ class GeoPageDetailSerializer(serializers.ModelSerializer):
 
             elif block.block_type == 'header':
                 h = block.value
-                description = h.get('description', '')
                 block_data['value'] = {
                     'title': h.get('title', ''),
-                    'description': description if description else ''
+                    'description': str(h.get('description', ''))
                 }
 
             result.append(block_data)
