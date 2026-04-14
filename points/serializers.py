@@ -1,6 +1,6 @@
-from rest_framework import serializers
+from rest_framework import serializers, exceptions
 from .models.api import Point, Message
-from .services.point_service import create_point
+from .services.point_service import create_point, PointValidationError
 from .services.message_service import create_message
 from .models.cms import GeoPage, GeoPagePoint
 from wagtail.images.models import Image
@@ -18,12 +18,15 @@ class PointSerializer(serializers.ModelSerializer):
         lat = validated_data.pop('latitude')
         lon = validated_data.pop('longitude')
         user = self.context['request'].user
-        return create_point(
-            name=validated_data['name'],
-            latitude=lat,
-            longitude=lon,
-            user=user
-        )
+        try:
+            return create_point(
+                name=validated_data['name'],
+                latitude=lat,
+                longitude=lon,
+                user=user
+            )
+        except PointValidationError as e:
+            raise serializers.ValidationError({e.field: [e.message]})
 
 class MessageSerializer(serializers.ModelSerializer):
     point_id = serializers.IntegerField(write_only=True)
@@ -36,19 +39,32 @@ class MessageSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         point_id = validated_data.pop('point_id')
         author = self.context['request'].user
-        return create_message(
-            point_id=point_id,
-            text=validated_data['text'],
-            author=author
-        )
+        try:
+            return create_message(
+                point_id=point_id,
+                text=validated_data['text'],
+                author=author
+            )
+        except ValueError as e:
+            raise serializers.ValidationError({'point_id': str(e)})
 
 class ImageSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
 
+    _cache = {}
+
     class Meta:
         model = Image
         fields = ['id', 'title', 'url', 'thumbnail_url', 'width', 'height']
+
+    def to_representation(self, instance):
+        cache_key = f"img_{instance.id}"
+
+        if cache_key not in self._cache:
+            self._cache[cache_key] = super().to_representation(instance)
+
+        return self._cache[cache_key]
 
     def get_url(self, obj):
         try:
@@ -61,6 +77,14 @@ class ImageSerializer(serializers.ModelSerializer):
             return obj.get_rendition('max-400x400').url
         except Exception:
             return None
+
+    @classmethod
+    def clear_cache(cls):
+        cls._cache.clear()
+
+    @classmethod
+    def get_cache_size(cls):
+        return len(cls._cache)
 
 
 class GeoPagePointSerializer(serializers.ModelSerializer):
@@ -91,6 +115,47 @@ class GeoPageListSerializer(serializers.ModelSerializer):
         return obj.get_full_url()
 
 
+class SliderBlockSerializer(serializers.Serializer):
+    slides = serializers.SerializerMethodField()
+
+    def get_slides(self, block_value):
+        raw_slides = block_value.get('slides', [])
+        return [
+            {
+                'caption': slide.get('caption', ''),
+                'image': ImageSerializer(slide.get('image')).data
+            }
+            for slide in raw_slides
+        ]
+
+
+class HeaderBlockSerializer(serializers.Serializer):
+    title = serializers.CharField()
+    description = serializers.SerializerMethodField()
+
+    def get_description(self, block_value):
+        desc = block_value.get('description', '')
+        return str(desc) if desc else ''
+
+
+class BlockSerializerRegistry:
+    _registry = {
+        'slider': SliderBlockSerializer,
+        'header': HeaderBlockSerializer,
+    }
+
+    @classmethod
+    def get_serializer(cls, block_type):
+        return cls._registry.get(block_type)
+
+    @classmethod
+    def register(cls, block_type):
+        def decorator(serializer_cls):
+            cls._registry[block_type] = serializer_cls
+            return serializer_cls
+        return decorator
+
+
 class GeoPageDetailSerializer(serializers.ModelSerializer):
     page_url = serializers.SerializerMethodField()
     points = GeoPagePointSerializer(source='page_points', many=True, read_only=True)
@@ -112,25 +177,16 @@ class GeoPageDetailSerializer(serializers.ModelSerializer):
 
         result = []
         for block in obj.content:
-            block_data = {'type': block.block_type, 'id': block.id, 'value': None}
+            serializer_cls = BlockSerializerRegistry.get_serializer(block.block_type)
 
-            if block.block_type == 'slider':
-                slides_val = block.value.get('slides', [])
-                slides = []
-                for slide in slides_val:
-                    slide_data = {'caption': slide.get('caption', ''), 'image': None}
-                    img = slide.get('image')
-                    if img:
-                        slide_data['image'] = ImageSerializer(img).data
-                    slides.append(slide_data)
-                block_data['value'] = {'slides': slides}
+            if serializer_cls:
+                block_data = serializer_cls(block.value).data
+            else:
+                block_data = {'raw': str(block.value)}
 
-            elif block.block_type == 'header':
-                h = block.value
-                block_data['value'] = {
-                    'title': h.get('title', ''),
-                    'description': str(h.get('description', ''))
-                }
-
-            result.append(block_data)
+            result.append({
+                'type': block.block_type,
+                'id': block.id,
+                'value': block_data
+            })
         return result

@@ -4,6 +4,7 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from .models.api import Point, Message
 from .serializers import PointSerializer, MessageSerializer, GeoPageListSerializer, GeoPageDetailSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -142,6 +143,10 @@ def search_messages(request):
 
     return Response(result)
 
+class GeoPagePagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'size'
+    max_page_size = 50
 
 @extend_schema(
     summary="Список страниц",
@@ -150,6 +155,7 @@ def search_messages(request):
 class GeoPageListView(generics.ListAPIView):
     serializer_class = GeoPageListSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = GeoPagePagination
 
     def get_queryset(self):
         queryset = GeoPage.objects.live().order_by('-first_published_at')
