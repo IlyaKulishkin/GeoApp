@@ -1,17 +1,18 @@
 import pytest
-import os
-from io import BytesIO
-from PIL import Image as PILImage
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.contrib.auth import get_user_model
-from django.contrib.gis.geos import Point as GEOSPoint
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
-from wagtail.models import Page, Site
-from wagtail.images.models import Image
+from wagtail.models import Page
+from django.contrib.gis.geos import Point as GEOSPoint
 
-from points.models.api import Point, Message
-from points.models.cms import GeoPage, GeoPagePoint
+from .factories import (
+    UserFactory,
+    AdminUserFactory,
+    PointFactory,
+    MessageFactory,
+    ImageFactory,
+    GeoPageWithSliderFactory,
+    GeoPagePointFactory,
+)
 
 
 @pytest.fixture(scope='session')
@@ -27,16 +28,15 @@ def api_client():
 
 
 @pytest.fixture
+def user(db):
+    """Создаёт обычного пользователя"""
+    return UserFactory()
+
+
+@pytest.fixture
 def admin_user(db):
-    """Создаёт тестового суперпользователя"""
-    User = get_user_model()
-    user, _ = User.objects.get_or_create(
-        username='test_admin',
-        defaults={'email': 'test@admin.com', 'is_superuser': True}
-    )
-    user.set_password('testpass123')
-    user.save()
-    return user
+    """Создаёт суперпользователя"""
+    return AdminUserFactory(username='test_admin')
 
 
 @pytest.fixture
@@ -64,61 +64,41 @@ def wagtail_root(db):
 
 @pytest.fixture
 def dummy_image(db):
-    """Создаёт тестовое изображение"""
-    file = BytesIO()
-    img = PILImage.new('RGB', (100, 100), color='blue')
-    img.save(file, 'jpeg')
-    file.name = 'test_img.jpg'
-    file.seek(0)
-
-    django_file = SimpleUploadedFile(
-        name='test_img.jpg',
-        content=file.read(),
-        content_type='image/jpeg'
-    )
-    return Image.objects.create(title='Test Image', file=django_file)
+    """Создаёт тестовое изображение с рендерами"""
+    return ImageFactory()
 
 
 @pytest.fixture
-def geo_page(db, wagtail_root, dummy_image):
-    """Создаёт и публикует GeoPage с контентом для тестов"""
-    page = GeoPage(
-        title='Тестовая страница',
-        slug='test-page',
-        content=[
-            ('header', {
-                'title': 'Главный заголовок',
-                'description': '<p>Описание с <strong>жирным</strong> текстом</p>'
-            }),
-            ('slider', {
-                'slides': [
-                    {'image': dummy_image, 'caption': 'Слайд 1'},
-                    {'image': dummy_image, 'caption': 'Слайд 2'},
-                    {'image': dummy_image, 'caption': 'Слайд 3'},
-                ]
-            })
-        ]
-    )
-    wagtail_root.add_child(instance=page)
-    page.save_revision().publish()
-    return page
+def geo_page(db, wagtail_root):
+    """Создаёт и публикует GeoPage со слайдером"""
+    return GeoPageWithSliderFactory()
 
 
 @pytest.fixture
 def test_point(db, admin_user):
     """Создаёт гео-точку для тестов"""
-    return Point.objects.create(
+    return PointFactory(
+        created_by=admin_user,
         name='Test Point',
         location=GEOSPoint(37.6173, 55.7558, srid=4326),
-        address='Москва, Кремль',
-        created_by=admin_user
+        address='Москва, Кремль'
+    )
+
+
+@pytest.fixture
+def test_message(db, test_point, admin_user):
+    """Создаёт тестовое сообщение (не испрользуется в тестах, реализовал в рамках ознакомления с factory boy)"""
+    return MessageFactory(
+        point=test_point,
+        author=admin_user,
+        text='Test message'
     )
 
 
 @pytest.fixture
 def linked_point(db, geo_page, test_point):
     """Привязывает точку к странице через GeoPagePoint"""
-    return GeoPagePoint.objects.create(page=geo_page, point=test_point)
+    return GeoPagePointFactory(page=geo_page, point=test_point)
 
 
 @pytest.fixture
@@ -137,4 +117,14 @@ def sample_message_data(test_point):
     return {
         'point_id': test_point.id,
         'text': 'Sample message text'
+    }
+
+
+@pytest.fixture
+def sample_search_data():
+    """Данные для поиска"""
+    return {
+        'latitude': 55.75,
+        'longitude': 37.62,
+        'radius': 2
     }
