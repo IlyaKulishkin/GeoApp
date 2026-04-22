@@ -37,6 +37,16 @@ class TestGeoPageEndpoints:
         assert 'content_blocks' not in page_data
         assert 'points' not in page_data
 
+    def test_list_pages_query_count(self, authenticated_client, geo_page, django_assert_num_queries):
+        # 1. SELECT "auth_user"
+        # 2. SELECT COUNT(*)... - считает количество live страниц
+        # 3. SELECT "wagtailcore_page"
+        with django_assert_num_queries(3):
+            response = authenticated_client.get('/api/pages/')
+
+        assert response.status_code == 200
+        assert response.json()['count'] == 1
+
     def test_detail_page_unauthorized(self, api_client, geo_page):
         response = api_client.get(f'/api/pages/{geo_page.pk}/')
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
