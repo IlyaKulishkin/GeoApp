@@ -4,6 +4,7 @@ from .services.point_service import create_point, PointValidationError
 from .services.message_service import create_message
 from .models.cms import GeoPage, GeoPagePoint
 from wagtail.images.models import Image
+from drf_spectacular.utils import extend_schema_field
 
 class PointSerializer(serializers.ModelSerializer):
     latitude = serializers.FloatField(write_only=True)
@@ -171,6 +172,19 @@ class GeoPageDetailSerializer(serializers.ModelSerializer):
     def get_page_url(self, obj):
         return obj.get_full_url()
 
+    @extend_schema_field(
+        {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {"type": "string"},
+                    "id": {"type": "string", "format": "uuid"},
+                    "value": {"type": "object"}
+                }
+            }
+        }
+    )
     def get_content_blocks(self, obj):
         if not obj.content:
             return []
