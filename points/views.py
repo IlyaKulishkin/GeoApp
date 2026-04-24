@@ -163,8 +163,89 @@ class GeoPageListView(generics.ListAPIView):
         return queryset
 
 
-@extend_schema(summary="Детальная информация",
-               description="Полный контент страницы"
+@extend_schema(
+    summary="Детальная информация",
+    description="Полный контент страницы",
+    responses={
+        200: {
+            "type": "object",
+            "properties": {
+                "id": {"type": "integer"},
+                "title": {"type": "string"},
+                "slug": {"type": "string"},
+                "content_blocks": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {"type": "string", "enum": ["header"]},
+                                    "id": {"type": "string", "format": "uuid"},
+                                    "value": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {"type": "string"},
+                                            "description": {"type": "string"}
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {"type": "string", "enum": ["slider"]},
+                                    "id": {"type": "string", "format": "uuid"},
+                                    "value": {
+                                        "type": "object",
+                                        "properties": {
+                                            "slides": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "caption": {"type": "string"},
+                                                        "image": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "id": {"type": "integer"},
+                                                                "title": {"type": "string"},
+                                                                "url": {"type": "string", "format": "uri"},
+                                                                "thumbnail_url": {"type": "string", "format": "uri"},
+                                                                "width": {"type": "integer"},
+                                                                "height": {"type": "integer"}
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "point_name": {"type": "string"},
+                            "point_address": {"type": "string"},
+                            "point_latitude": {"type": "number"},
+                            "point_longitude": {"type": "number"}
+                        }
+                    }
+                },
+                "page_url": {"type": "string", "format": "uri", "nullable": True},
+                "first_published_at": {"type": "string", "format": "date-time"},
+                "last_published_at": {"type": "string", "format": "date-time"},
+                "live": {"type": "boolean"}
+            }
+        }
+    }
 )
 class GeoPageDetailView(generics.RetrieveAPIView):
     queryset = GeoPage.objects.live()
