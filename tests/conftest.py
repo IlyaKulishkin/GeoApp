@@ -139,3 +139,21 @@ def sample_search_data():
         'longitude': 37.62,
         'radius': 2
     }
+
+
+@pytest.fixture(autouse=True)
+def celery_always_eager(settings):
+    """Запускает Celery задачи синхронно в тестах"""
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+
+
+@pytest.fixture(autouse=True)
+def mock_dadata(monkeypatch):
+    """Мокает DadataService"""
+    def mock_get_address(self, lat, lon, radius_meters=100):
+        return f"Тестовый адрес"
+
+    monkeypatch.setattr(
+        'points.services.dadata_service.DadataService.get_address_by_coordinates',
+        mock_get_address
+    )

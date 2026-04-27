@@ -3,7 +3,7 @@
 """
 import pytest
 from rest_framework import status
-from tests.conftest import sample_point_data
+from points.models.api import Point
 
 
 @pytest.mark.django_db
@@ -16,6 +16,14 @@ class TestPointEndpoints:
         assert 'id' in response.json()
         assert 'created_at' in response.json()
         assert response.json()['address'] is None
+
+    def test_create_point_address_filled_by_celery(self, authenticated_client, sample_point_data):
+        response = authenticated_client.post('/api/points/', sample_point_data)
+        assert response.status_code == status.HTTP_201_CREATED
+        point_id = response.json()['id']
+
+        point = Point.objects.get(id=point_id)
+        assert point.address == 'Тестовый адрес'
 
     def test_create_point_unauthorized(self, api_client, sample_point_data):
         response = api_client.post('/api/points/', sample_point_data)
@@ -46,11 +54,17 @@ class TestPointEndpoints:
         # 2. SELECT ... - проверка дубликата
         # 3. INSERT INTO "points_point"
         # 4. SELECT "points_point"
-        # 5. SAVEPOINT
-        # 6. SELECT "wagtailcore_referenceindex"
-        # 7. INSERT INTO "wagtailcore_referenceindex"
-        # 8. RELEASE SAVEPOINT
-        with django_assert_num_queries(8):
+        # 5. UPDATE "points_point" SET "address" = 'Тестовый адрес'
+        # 6. SELECT "points_point"
+        # 7. SAVEPOINT
+        # 8. SELECT "wagtailcore_referenceindex"
+        # 9. INSERT INTO "wagtailcore_referenceindex"
+        # 10. RELEASE SAVEPOINT
+        # 11. SELECT "points_point"
+        # 12. SAVEPOINT
+        # 13. SELECT "wagtailcore_referenceindex"
+        # 14. RELEASE SAVEPOINT
+        with django_assert_num_queries(14):
             response = authenticated_client.post('/api/points/', sample_point_data)
 
         assert response.status_code == status.HTTP_201_CREATED
