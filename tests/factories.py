@@ -119,11 +119,15 @@ class GeoPageFactory(DjangoModelFactory):
 
 class GeoPageWithSliderFactory(GeoPageFactory):
     """Фабрика для GeoPage со слайдером"""
+
+    class Params:
+        slider_images = None
+
     @lazy_attribute
     def content(self):
         fake = Faker()
 
-        images = ImageFactory.create_batch(3)
+        images = self.slider_images or ImageFactory.create_batch(3)
         return [
             ('header', {
                 'title': fake.sentence(),

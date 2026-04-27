@@ -68,10 +68,21 @@ def dummy_image(db):
     return ImageFactory()
 
 
+@pytest.fixture(scope='session')
+def slider_images(django_db_setup, django_db_blocker):
+    """Создаёт 3 изображения один раз на тесты page"""
+    with django_db_blocker.unblock():
+        return ImageFactory.create_batch(3)
+
+
 @pytest.fixture
-def geo_page(db, wagtail_root):
+def geo_page(db, wagtail_root, slider_images):
     """Создаёт и публикует GeoPage со слайдером"""
-    return GeoPageWithSliderFactory()
+    return GeoPageWithSliderFactory(
+        title='Test page',
+        slug='test-page',
+        slider_images=slider_images,
+    )
 
 
 @pytest.fixture
