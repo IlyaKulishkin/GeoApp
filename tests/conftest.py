@@ -157,3 +157,14 @@ def mock_dadata(monkeypatch):
         'points.services.dadata_service.DadataService.get_address_by_coordinates',
         mock_get_address
     )
+
+
+@pytest.fixture(autouse=True)
+def clear_redis_test_db(settings):
+    """Использует отдельную базу Redis для тестов и очищает её после"""
+    settings.CACHES['default']['LOCATION'] = 'redis://redis:6379/9'
+
+    from django.core.cache import cache
+    cache.clear()
+    yield
+    cache.clear()

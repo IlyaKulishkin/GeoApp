@@ -9,6 +9,9 @@ from .models.api import Point, Message
 from .serializers import PointSerializer, MessageSerializer, GeoPageListSerializer, GeoPageDetailSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models.cms import GeoPage, GeoPagePoint
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from django.utils.decorators import method_decorator
 
 
 def validate_geo_params(lat, lon, radius):
@@ -148,6 +151,8 @@ class GeoPagePagination(PageNumberPagination):
     page_size_query_param = 'size'
     max_page_size = 50
 
+@method_decorator(cache_page(3600 * 24 * 30), name='dispatch')
+@method_decorator(vary_on_headers('Authorization'), name='dispatch')
 @extend_schema(
     summary="Список страниц",
     description="Возвращает краткую информацию о опубликованных страницах"
@@ -163,6 +168,8 @@ class GeoPageListView(generics.ListAPIView):
         return queryset
 
 
+@method_decorator(cache_page(3600 * 24 * 30), name='dispatch')
+@method_decorator(vary_on_headers('Authorization'), name='dispatch')
 @extend_schema(
     summary="Детальная информация",
     description="Полный контент страницы",

@@ -41,7 +41,8 @@ class TestGeoPageEndpoints:
         # 1. SELECT "auth_user"
         # 2. SELECT COUNT(*)... - считает количество live страниц
         # 3. SELECT "wagtailcore_page"
-        with django_assert_num_queries(3):
+        # 4. SELECT "wagtailcore_site"
+        with django_assert_num_queries(4):
             response = authenticated_client.get('/api/pages/')
 
         assert response.status_code == 200
@@ -116,7 +117,8 @@ class TestGeoPageEndpoints:
         # 3. SELECT points_geopagepoint
         # 4. SELECT points_point
         # 5. SELECT wagtailimages_image
-        with django_assert_num_queries(5):
+        # 6. SELECT "wagtailcore_site"
+        with django_assert_num_queries(6):
             response = authenticated_client.get(f'/api/pages/{linked_point.page.pk}/')
 
         assert response.status_code == status.HTTP_200_OK
