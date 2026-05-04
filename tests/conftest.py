@@ -1,8 +1,13 @@
+import tempfile
+import shutil
 import pytest
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from wagtail.models import Page
 from django.contrib.gis.geos import Point as GEOSPoint
+from django.conf import settings
+from django.test import override_settings
+from django.core.cache import cache
 
 from .factories import (
     UserFactory,
@@ -142,9 +147,21 @@ def sample_search_data():
 
 
 @pytest.fixture(autouse=True)
-def celery_always_eager(settings):
-    """Запускает Celery задачи синхронно в тестах"""
-    settings.CELERY_TASK_ALWAYS_EAGER = True
+def test_settings():
+    """Настройки для тестового окружения"""
+    with override_settings(
+        DADATA_TOKEN='test_dadata_token',
+        CELERY_TASK_ALWAYS_EAGER=True,
+        CACHES={
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': 'redis://redis:6379/9',
+            }
+        }
+    ):
+        cache.clear()
+        yield
+        cache.clear()
 
 
 @pytest.fixture(autouse=True)
@@ -159,12 +176,10 @@ def mock_dadata(monkeypatch):
     )
 
 
-@pytest.fixture(autouse=True)
-def clear_redis_test_db(settings):
-    """Использует отдельную базу Redis для тестов и очищает её после"""
-    settings.CACHES['default']['LOCATION'] = 'redis://redis:6379/9'
-
-    from django.core.cache import cache
-    cache.clear()
-    yield
-    cache.clear()
+@pytest.fixture(scope='session', autouse=True)
+def session_temp_media_root():
+    """Одна временная папка для всех тестов, удаляется в конце сессии"""
+    temp_dir = tempfile.mkdtemp()
+    with override_settings(MEDIA_ROOT=temp_dir):
+        yield temp_dir
+    shutil.rmtree(temp_dir, ignore_errors=True)
