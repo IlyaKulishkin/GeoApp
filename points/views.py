@@ -163,9 +163,7 @@ class GeoPageListView(generics.ListAPIView):
     pagination_class = GeoPagePagination
 
     def get_queryset(self):
-        queryset = GeoPage.objects.live().order_by('-first_published_at')
-
-        return queryset
+        return GeoPage.objects.live().order_by('-first_published_at')
 
 
 @method_decorator(cache_page(3600 * 24 * 30), name='dispatch')

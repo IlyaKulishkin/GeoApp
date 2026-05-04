@@ -105,14 +105,11 @@ class GeoPagePointSerializer(serializers.ModelSerializer):
 
 
 class GeoPageListSerializer(serializers.ModelSerializer):
-    page_url = serializers.SerializerMethodField()
+    page_url = serializers.URLField(source='get_full_url', read_only=True)
 
     class Meta:
         model = GeoPage
         fields = ['id', 'title', 'first_published_at', 'last_published_at', 'live', 'page_url']
-
-    def get_page_url(self, obj):
-        return obj.get_full_url()
 
 
 class SliderBlockSerializer(serializers.Serializer):
@@ -157,7 +154,7 @@ class BlockSerializerRegistry:
 
 
 class GeoPageDetailSerializer(serializers.ModelSerializer):
-    page_url = serializers.SerializerMethodField()
+    page_url = serializers.URLField(source='get_full_url', read_only=True)
     points = GeoPagePointSerializer(source='page_points', many=True, read_only=True)
     content_blocks = serializers.SerializerMethodField()
 
@@ -168,8 +165,6 @@ class GeoPageDetailSerializer(serializers.ModelSerializer):
             'points', 'page_url', 'first_published_at', 'last_published_at', 'live'
         ]
 
-    def get_page_url(self, obj):
-        return obj.get_full_url()
 
     def get_content_blocks(self, obj):
         if not obj.content:
