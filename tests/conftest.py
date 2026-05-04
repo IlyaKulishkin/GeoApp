@@ -1,11 +1,8 @@
-import tempfile
-import shutil
 import pytest
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 from wagtail.models import Page
 from django.contrib.gis.geos import Point as GEOSPoint
-from django.conf import settings
 from django.test import override_settings
 from django.core.cache import cache
 
@@ -146,8 +143,8 @@ def sample_search_data():
     }
 
 
-@pytest.fixture(autouse=True)
-def test_settings():
+@pytest.fixture(scope='session', autouse=True)
+def test_settings(tmp_path_factory):
     """Настройки для тестового окружения"""
     with override_settings(
         DADATA_TOKEN='test_dadata_token',
@@ -157,7 +154,8 @@ def test_settings():
                 'BACKEND': 'django_redis.cache.RedisCache',
                 'LOCATION': 'redis://redis:6379/9',
             }
-        }
+        },
+        MEDIA_ROOT=tmp_path_factory.mktemp("media")
     ):
         cache.clear()
         yield
@@ -174,12 +172,3 @@ def mock_dadata(monkeypatch):
         'points.services.dadata_service.DadataService.get_address_by_coordinates',
         mock_get_address
     )
-
-
-@pytest.fixture(scope='session', autouse=True)
-def session_temp_media_root():
-    """Одна временная папка для всех тестов, удаляется в конце сессии"""
-    temp_dir = tempfile.mkdtemp()
-    with override_settings(MEDIA_ROOT=temp_dir):
-        yield temp_dir
-    shutil.rmtree(temp_dir, ignore_errors=True)
