@@ -55,16 +55,18 @@ class TestPointEndpoints:
         # 3. INSERT INTO "points_point"
         # 4. SELECT "points_point"
         # 5. UPDATE "points_point" SET "address" = 'Тестовый адрес'
-        # 6. SELECT "points_point"
-        # 7. SAVEPOINT
-        # 8. SELECT "wagtailcore_referenceindex"
-        # 9. INSERT INTO "wagtailcore_referenceindex"
-        # 10. RELEASE SAVEPOINT
-        # 11. SELECT "points_point"
-        # 12. SAVEPOINT
-        # 13. SELECT "wagtailcore_referenceindex"
-        # 14. RELEASE SAVEPOINT
-        with django_assert_num_queries(14):
+        # 6. SELECT 1 AS "a" FROM "points_geopagepoint" - Сигнал: проверка связей
+        # 7. SELECT "points_point"
+        # 8. SELECT "points_point"
+        # 9. SAVEPOINT
+        # 10. SELECT "wagtailcore_referenceindex"
+        # 11. INSERT INTO "wagtailcore_referenceindex"
+        # 12. RELEASE SAVEPOINT
+        # 13. SELECT "points_point"
+        # 14. SAVEPOINT
+        # 15. SELECT "wagtailcore_referenceindex"
+        # 16. RELEASE SAVEPOINT
+        with django_assert_num_queries(16):
             response = authenticated_client.post('/api/points/', sample_point_data)
 
         assert response.status_code == status.HTTP_201_CREATED
