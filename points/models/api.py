@@ -33,7 +33,7 @@ class Point(models.Model):
 
 @register_snippet
 class Message(models.Model):
-    point = models.ForeignKey('Point', on_delete=models.CASCADE, related_name='authored_messages')
+    point = models.ForeignKey('Point', on_delete=models.CASCADE, related_name='authored_messages_points')
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='authored_messages')
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

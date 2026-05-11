@@ -5,6 +5,14 @@ from .services.message_service import create_message
 from .models.cms import GeoPage, GeoPagePoint
 from wagtail.images.models import Image
 
+class MessagePointSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.username', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'text', 'created_at', 'author_name']
+        read_only_fields = fields
+
 class PointSerializer(serializers.ModelSerializer):
     latitude = serializers.FloatField(write_only=True)
     longitude = serializers.FloatField(write_only=True)
@@ -92,10 +100,11 @@ class GeoPagePointSerializer(serializers.ModelSerializer):
     point_address = serializers.CharField(source='point.address', read_only=True)
     point_latitude = serializers.SerializerMethodField()
     point_longitude = serializers.SerializerMethodField()
+    messages = MessagePointSerializer(many=True, read_only=True, source="point.authored_messages_points")
 
     class Meta:
         model = GeoPagePoint
-        fields = ['id', 'point_name', 'point_address', 'point_latitude', 'point_longitude']
+        fields = ['id', 'point_name', 'point_address', 'point_latitude', 'point_longitude', 'messages']
 
     def get_point_latitude(self, obj):
         return obj.point.location.y if obj.point.location else None

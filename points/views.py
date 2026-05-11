@@ -240,7 +240,19 @@ class GeoPageListView(generics.ListAPIView):
                             "point_name": {"type": "string"},
                             "point_address": {"type": "string"},
                             "point_latitude": {"type": "number"},
-                            "point_longitude": {"type": "number"}
+                            "point_longitude": {"type": "number"},
+                            "messages": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {"type": "integer"},
+                                        "text": {"type": "string"},
+                                        "created_at": {"type": "string", "format": "date-time"},
+                                        "author_name": {"type": "string"}
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -258,4 +270,6 @@ class GeoPageDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related('page_points__point')
+        return super().get_queryset().prefetch_related(
+            'page_points__point__authored_messages_points__author'
+        )

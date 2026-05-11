@@ -2,9 +2,7 @@
 Запуск: docker-compose exec web pytest tests/unit/test_page.py
 """
 import pytest
-from django.contrib.gis.geos import Point as GEOSPoint
 from rest_framework import status
-from points.models.api import Point, Message
 from points.models.cms import GeoPage
 
 @pytest.mark.django_db
@@ -101,6 +99,23 @@ class TestGeoPageEndpoints:
         assert pt['point_address'] == 'Москва, Кремль'
         assert pt['point_latitude'] == 55.7558
         assert pt['point_longitude'] == 37.6173
+        assert pt['messages'] == []
+
+    def test_detail_page_point_with_message(self, authenticated_client, geo_page, linked_point, admin_user, test_message):
+        response = authenticated_client.get(f'/api/pages/{geo_page.pk}/')
+        assert response.status_code == status.HTTP_200_OK
+
+        data = response.json()
+
+        pt = data['points'][0]
+
+        assert isinstance(pt['messages'], list)
+
+        msg = pt['messages'][0]
+        assert msg['id'] == test_message.id
+        assert msg['text'] == test_message.text
+        assert 'created_at' in msg
+        assert msg['author_name'] == admin_user.username
 
     def test_detail_page_excludes_drafts(self, authenticated_client, wagtail_root):
         draft = GeoPage(title='Draft', slug='draft', live=False)
@@ -116,7 +131,7 @@ class TestGeoPageEndpoints:
         # 3. SELECT points_geopagepoint
         # 4. SELECT points_point
         # 5. SELECT wagtailimages_image
-        with django_assert_num_queries(5):
+        with django_assert_num_queries(6):
             response = authenticated_client.get(f'/api/pages/{linked_point.page.pk}/')
 
         assert response.status_code == status.HTTP_200_OK

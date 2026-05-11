@@ -4,8 +4,6 @@
 import pytest
 from rest_framework import status
 
-from tests.factories import GeoPageFactory
-
 
 @pytest.mark.django_db
 class TestPageCaching:
@@ -112,7 +110,7 @@ class TestPageCaching:
         linked_point.point.name = 'Обновлённая точка'
         linked_point.point.save()
 
-        with django_assert_num_queries(5):
+        with django_assert_num_queries(6):
             response_2 = authenticated_client.get(url)
 
         assert response_2.json()['points'][0]['point_name'] == 'Обновлённая точка'
@@ -131,7 +129,7 @@ class TestPageCaching:
 
         GeoPagePoint.objects.create(page=geo_page, point=test_point)
 
-        with django_assert_num_queries(5):
+        with django_assert_num_queries(6):
             response_2 = authenticated_client.get(url)
 
         assert len(response_2.json()['points']) == old_count + 1
