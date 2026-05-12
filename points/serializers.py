@@ -4,6 +4,8 @@ from .services.point_service import create_point, PointValidationError
 from .services.message_service import create_message
 from .models.cms import GeoPage, GeoPagePoint
 from wagtail.images.models import Image
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 
 class MessagePointSerializer(serializers.ModelSerializer):
     author_name = serializers.CharField(source='author.username', read_only=True)
@@ -106,9 +108,11 @@ class GeoPagePointSerializer(serializers.ModelSerializer):
         model = GeoPagePoint
         fields = ['id', 'point_name', 'point_address', 'point_latitude', 'point_longitude', 'messages']
 
+    @extend_schema_field(OpenApiTypes.FLOAT)
     def get_point_latitude(self, obj):
         return obj.point.location.y if obj.point.location else None
 
+    @extend_schema_field(OpenApiTypes.FLOAT)
     def get_point_longitude(self, obj):
         return obj.point.location.x if obj.point.location else None
 
@@ -174,7 +178,61 @@ class GeoPageDetailSerializer(serializers.ModelSerializer):
             'points', 'page_url', 'first_published_at', 'last_published_at', 'live'
         ]
 
-
+    @extend_schema_field(
+        {
+            "type": "array",
+            "items": {
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string", "enum": ["header"]},
+                            "id": {"type": "string", "format": "uuid"},
+                            "value": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {"type": "string"},
+                                    "description": {"type": "string"}
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string", "enum": ["slider"]},
+                            "id": {"type": "string", "format": "uuid"},
+                            "value": {
+                                "type": "object",
+                                "properties": {
+                                    "slides": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "caption": {"type": "string"},
+                                                "image": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {"type": "integer"},
+                                                        "title": {"type": "string"},
+                                                        "url": {"type": "string", "format": "uri"},
+                                                        "thumbnail_url": {"type": "string", "format": "uri"},
+                                                        "width": {"type": "integer"},
+                                                        "height": {"type": "integer"}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    )
     def get_content_blocks(self, obj):
         if not obj.content:
             return []
