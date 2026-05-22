@@ -79,3 +79,28 @@ class PointForm(forms.ModelForm):
 
 
 Point.base_form_class = PointForm
+
+
+@register_snippet
+class Artifact(models.Model):
+    fastapi_id = models.IntegerField(unique=True, null=True, blank=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    synced_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Артефакт"
+        verbose_name_plural = "Артефакты"
+
+    def __str__(self):
+        return self.name
+
+    panels = [
+        FieldPanel("name", read_only=True),
+        FieldPanel("description", read_only=True),
+        FieldPanel("owner", read_only=True),
+        FieldPanel("created_at", read_only=True),
+        FieldPanel("synced_at", read_only=True),
+    ]

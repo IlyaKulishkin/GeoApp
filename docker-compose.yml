@@ -31,7 +31,50 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      rabbitmq:
+        condition: service_started
     command: web
+    
+  fastapi:
+    build: ./fastapi_service
+    env_file: .env.local
+    ports: [ "8001:8001" ]
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  fastapi_consumer:
+    build: ./fastapi_service
+    env_file: .env.local
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      db:
+        condition: service_healthy
+    command: python rabbit_consumer.py
+
+  artifact_consumer:
+    build: .
+    env_file: .env.local
+    volumes:
+      - .:/app
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      db:
+        condition: service_healthy
+    command: python manage.py consume_artifacts
 
   celery:
     build: .
@@ -41,6 +84,7 @@ services:
     depends_on:
       - db
       - redis
+      - rabbitmq
     command: celery -A geopointsapp worker --loglevel=info
 
 volumes:

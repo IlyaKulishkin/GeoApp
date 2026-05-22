@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-nh)1yxiocniuod6tstdav@q)#xq+j^(096y-qq4yfv&1b8ko_&'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -193,3 +193,8 @@ CACHES = {
         }
     }
 }
+
+RABBITMQ_URL = os.getenv(
+    "RABBITMQ_URL",
+    default="amqp://guest:guest@rabbitmq:5672/"
+)

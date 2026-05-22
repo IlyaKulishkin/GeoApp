@@ -53,3 +53,8 @@ def register_underline_feature(features):
             },
         }
     )
+
+
+@menu_item("Артефакты", "/cms/snippets/points/artifact/", "code", 102)
+def register_artifacts_menu():
+    pass
