@@ -63,6 +63,7 @@ services:
       db:
         condition: service_healthy
     command: python rabbit_consumer.py
+    restart: unless-stopped
 
   artifact_consumer:
     build: .
@@ -75,6 +76,7 @@ services:
       db:
         condition: service_healthy
     command: python manage.py consume_artifacts
+    restart: unless-stopped
 
   celery:
     build: .

@@ -1,13 +1,12 @@
 import json
+import logging
+import os
+
 import pika
-from django.conf import settings
 
+logger = logging.getLogger(__name__)
 
-RABBITMQ_URL = getattr(
-    settings,
-    "RABBITMQ_URL",
-    "amqp://guest:guest@rabbitmq:5672/"
-)
+RABBITMQ_URL = os.getenv("RABBITMQ_URL")
 
 
 class RabbitMQUnavailable(Exception):
@@ -15,9 +14,9 @@ class RabbitMQUnavailable(Exception):
 
 
 def publish_message(queue_name: str, payload: dict):
+    connection = None
     try:
         params = pika.URLParameters(RABBITMQ_URL)
-
         connection = pika.BlockingConnection(params)
         channel = connection.channel()
 
@@ -32,7 +31,11 @@ def publish_message(queue_name: str, payload: dict):
             )
         )
 
-        connection.close()
+        logger.info(f"Message published to queue '{queue_name}': user_id={payload.get('user_id')}")
 
     except Exception as e:
+        logger.error(f"Failed to publish to '{queue_name}': {e}")
         raise RabbitMQUnavailable(str(e))
+    finally:
+        if connection and connection.is_open:
+            connection.close()

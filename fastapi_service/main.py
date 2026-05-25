@@ -15,15 +15,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    SECRET_KEY = "django-insecure-nh)1yxiocniuod6tstdav@q)#xq+j^(096y-qq4yfv&1b8ko_&"
-    logger.warning("SECRET_KEY not set, using default key for development!")
 
 ALGORITHM = "HS256"
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    DATABASE_URL = "postgresql://geouser:geopass@db:5432/geopoints"
-    logger.warning("DATABASE_URL not set, using default key for development!")
 
 
 def get_engine_with_retry(max_retries=10, delay=3):
