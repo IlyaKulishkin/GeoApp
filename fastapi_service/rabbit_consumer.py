@@ -5,9 +5,9 @@ import logging
 import pika
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-from main import Artifact
 
-# Только добавляем логирование вместо print
+from fastapi_service.database import Artifact
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

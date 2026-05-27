@@ -1,6 +1,9 @@
 from celery import shared_task
 from .models import Point
+from .services.artifact_service import sync_artifacts_http
 from .services.dadata_service import DadataService
+from django.contrib.auth.models import User
+from points.services.rabbitmq_service import publish_message, RabbitMQUnavailable
 import logging
 logger = logging.getLogger(__name__)
 
@@ -27,3 +30,33 @@ def fetch_address_for_point(self, point_id):
     except Exception as exc:
         logger.info(f"Ошибка при получении адреса для точки {point_id}: {exc}")
         raise self.retry(exc=exc, countdown=60)
+
+
+@shared_task
+def sync_artifacts_for_user(user_id, username, prefer_rabbitmq=True):
+    if prefer_rabbitmq:
+        try:
+            publish_message("artifacts_request", {"user_id": user_id})
+            logger.info(f"RabbitMQ command sent for user {username}")
+            return {"status": "queued", "method": "rabbitmq", "user": username}
+        except RabbitMQUnavailable as e:
+            logger.warning(f"RabbitMQ unavailable, falling back to HTTP for user {username}: {e}")
+
+    try:
+        user = User.objects.only("id", "username").get(id=user_id)
+    except User.DoesNotExist:
+        logger.error(f"User {user_id} not found")
+        return {"error": "User not found"}
+
+    return sync_artifacts_http(user)
+
+
+@shared_task
+def sync_all_users():
+    users = list(User.objects.filter(is_active=True).values("id", "username"))
+
+    for user in users:
+        sync_artifacts_for_user.delay(user["id"], user["username"], prefer_rabbitmq=True)
+
+    logger.info(f"Started sync for {len(users)} users")
+    return {"total_users": len(users)}

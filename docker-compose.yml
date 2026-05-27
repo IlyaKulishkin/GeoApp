@@ -36,7 +36,9 @@ services:
     command: web
     
   fastapi:
-    build: ./fastapi_service
+    build:
+      context: .
+      dockerfile: fastapi_service/Dockerfile
     env_file: .env.local
     ports: [ "8001:8001" ]
     depends_on:
@@ -44,6 +46,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
+    working_dir: /app
+    command: uvicorn fastapi_service.main:app --host 0.0.0.0 --port 8001 --reload
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -55,14 +59,17 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
 
   fastapi_consumer:
-    build: ./fastapi_service
+    build:
+      context: .
+      dockerfile: fastapi_service/Dockerfile
     env_file: .env.local
     depends_on:
       rabbitmq:
         condition: service_started
       db:
         condition: service_healthy
-    command: python rabbit_consumer.py
+    working_dir: /app
+    command: python -m fastapi_service.rabbit_consumer
     restart: unless-stopped
 
   artifact_consumer:
@@ -88,6 +95,18 @@ services:
       - redis
       - rabbitmq
     command: celery -A geopointsapp worker --loglevel=info
+
+  celery-beat:
+    build: .
+    env_file: .env.local
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    command: celery -A geopointsapp beat --loglevel=info
+    restart: unless-stopped
 
 volumes:
   postgres_data:

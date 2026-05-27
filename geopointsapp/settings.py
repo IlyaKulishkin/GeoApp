@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+from celery.schedules import crontab
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -198,3 +199,11 @@ RABBITMQ_URL = os.getenv(
     "RABBITMQ_URL",
     default="amqp://guest:guest@rabbitmq:5672/"
 )
+
+
+CELERY_BEAT_SCHEDULE = {
+    'send-sync-command-every-n-minutes': {
+        'task': 'points.tasks.sync_all_users',
+        'schedule': crontab(minute="*/1"),
+    },
+}
