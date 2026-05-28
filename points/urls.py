@@ -10,5 +10,4 @@ urlpatterns = [
     path('pages/', views.GeoPageListView.as_view(), name='page-list'),
     path('pages/<int:pk>/', views.GeoPageDetailView.as_view(), name='page-detail'),
 
-    path('artifacts/sync/', views.sync_artifacts_admin, name='artifact-sync'),
 ]

@@ -13,10 +13,10 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from django.utils.decorators import method_decorator
 
-from .services.artifact_service import sync_artifacts_from_fastapi
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.contrib import messages
+from points.tasks import sync_all_users
+from wagtail.admin.auth import require_admin_access
 
 
 def validate_geo_params(lat, lon, radius):
@@ -191,22 +191,18 @@ class GeoPageDetailView(generics.RetrieveAPIView):
         )
 
 
-@login_required
-def sync_artifacts_admin(request):
+@require_admin_access
+def sync_artifacts_view(request):
     try:
-        stats = sync_artifacts_from_fastapi(request.user)
-
-        if stats["transport"] == "rabbitmq":
-            messages.success(
-                request,
-                "Запрос на синхронизацию отправлен в RabbitMQ, обновите страницу"
-            )
-        else:
-            messages.success(
-                request,
-                f"Синхронизировано {stats['synced']} артефактов"
-            )
-
+        task = sync_all_users.delay()
+        messages.success(
+            request,
+            f"Синхронизация запущена (задача #{task.id})"
+        )
     except Exception as e:
-        messages.error(request, f"Ошибка синхронизации: {e}")
-    return redirect("/cms/snippets/points/artifact/")
+        messages.error(
+            request,
+            f"Ошибка запуска синхронизации: {e}"
+        )
+
+    return redirect("wagtailsnippets_points_artifact:list")

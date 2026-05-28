@@ -2,6 +2,9 @@ from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 from wagtail.admin.rich_text.converters.html_to_contentstate import InlineStyleElementHandler
 from wagtail.admin.rich_text.editors.draftail.features import InlineStyleFeature
+from django.urls import reverse_lazy, path
+from points.views import sync_artifacts_view
+
 
 def menu_item(label, url, icon, order):
     def decorator(func):
@@ -58,3 +61,23 @@ def register_underline_feature(features):
 @menu_item("Артефакты", "/cms/snippets/points/artifact/", "code", 102)
 def register_artifacts_menu():
     pass
+
+
+@hooks.register('register_admin_urls')
+def register_sync_urls():
+
+    return [
+        path('sync-artifacts/',
+             sync_artifacts_view,
+             name='points_sync_artifacts'),
+    ]
+
+
+@hooks.register('register_admin_menu_item')
+def register_sync_menu():
+    return MenuItem(
+        'Синхронизация артефактов',
+        reverse_lazy('points_sync_artifacts'),
+        icon_name='download',
+        order=1000
+    )
