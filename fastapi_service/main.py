@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -10,15 +11,22 @@ from fastapi_service.routers import artifacts
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=PROJECT_NAME, docs_url="/api/docs")
 
-app.include_router(artifacts.router)
-
-
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("FastAPI started successfully")
+    yield
+    pass
+
+
+app = FastAPI(
+    title=PROJECT_NAME,
+    docs_url="/api/docs",
+    lifespan=lifespan
+)
+
+app.include_router(artifacts.router)
 
 
 @app.get("/")
