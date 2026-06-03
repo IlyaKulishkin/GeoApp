@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import pika
+import threading
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
@@ -32,11 +33,7 @@ def get_rabbit_connection(max_retries=20, delay=3):
                 raise
 
 
-def publish_response(payload: dict):
-    connection = get_rabbit_connection()
-    channel = connection.channel()
-    channel.queue_declare(queue='artifacts_response', durable=True)
-
+def publish_response(channel, payload: dict):
     channel.basic_publish(
         exchange='',
         routing_key='artifacts_response',
@@ -45,8 +42,6 @@ def publish_response(payload: dict):
             delivery_mode=2
         )
     )
-
-    connection.close()
     logger.info(f"Response published for user {payload.get('user_id')}")
 
 
@@ -70,24 +65,52 @@ def callback(ch, method, properties, body):
         ]
     }
 
-    publish_response(payload)
+    publish_response(ch, payload)
     ch.basic_ack(delivery_tag=method.delivery_tag)
     db.close()
     logger.info(f"Processed {len(artifacts)} artifacts for user {user_id}")
 
 
-def start_consumer():
+def start_consumer(stop_event: threading.Event):
     logger.info("Starting FastAPI RabbitMQ consumer...")
-    connection = get_rabbit_connection()
-    channel = connection.channel()
 
-    channel.queue_declare(queue='artifacts_request', durable=True)
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue='artifacts_request', on_message_callback=callback)
+    while not stop_event.is_set():
+        connection = None
+        try:
+            connection = get_rabbit_connection()
+            channel = connection.channel()
 
-    logger.info("Consumer started, waiting for messages...")
-    channel.start_consuming()
+            channel.queue_declare(queue='artifacts_request', durable=True)
+            channel.queue_declare(queue='artifacts_response', durable=True)
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume(queue='artifacts_request', on_message_callback=callback)
+
+            logger.info("Consumer started, waiting for messages...")
+
+            while not stop_event.is_set():
+                connection.process_data_events(time_limit=0.5)
+
+            logger.info("Stop event received, shutting down consumer...")
+            channel.stop_consuming()
+            break
+
+        except pika.exceptions.AMQPConnectionError as e:
+            logger.error(f"RabbitMQ connection lost: {e}")
+            if not stop_event.is_set():
+                logger.info("Reconnecting in 5 seconds...")
+                time.sleep(5)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            if not stop_event.is_set():
+                time.sleep(5)
+        finally:
+            if connection and connection.is_open:
+                connection.close()
+                logger.info("RabbitMQ connection closed")
+
+    logger.info("Consumer stopped")
 
 
 if __name__ == "__main__":
-    start_consumer()
+    stop_event = threading.Event()
+    start_consumer(stop_event)
