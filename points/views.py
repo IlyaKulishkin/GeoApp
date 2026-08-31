@@ -4,9 +4,19 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from .models.api import Point, Message
-from .serializers import PointSerializer, MessageSerializer
+from .serializers import PointSerializer, MessageSerializer, GeoPageListSerializer, GeoPageDetailSerializer
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from .models.cms import GeoPage, GeoPagePoint
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from django.utils.decorators import method_decorator
+
+from django.shortcuts import redirect
+from django.contrib import messages
+from points.tasks import sync_all_users
+from wagtail.admin.auth import require_admin_access
 
 
 def validate_geo_params(lat, lon, radius):
@@ -140,3 +150,59 @@ def search_messages(request):
         result.append(data)
 
     return Response(result)
+
+class GeoPagePagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'size'
+    max_page_size = 50
+
+@method_decorator(cache_page(3600 * 24 * 30), name='dispatch')
+@method_decorator(vary_on_headers('Authorization'), name='dispatch')
+@extend_schema(
+    summary="Список страниц",
+    description="Возвращает краткую информацию о опубликованных страницах"
+)
+class GeoPageListView(generics.ListAPIView):
+    serializer_class = GeoPageListSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = GeoPagePagination
+
+    def get_queryset(self):
+        return GeoPage.objects.live().order_by('-first_published_at')
+
+
+@method_decorator(cache_page(3600 * 24 * 30), name='dispatch')
+@method_decorator(vary_on_headers('Authorization'), name='dispatch')
+@extend_schema(
+    summary="Детальная информация",
+    description="Полный контент страницы",
+    responses={
+        200: GeoPageDetailSerializer
+    }
+)
+class GeoPageDetailView(generics.RetrieveAPIView):
+    queryset = GeoPage.objects.live()
+    serializer_class = GeoPageDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related(
+            'page_points__point__authored_messages_points__author'
+        )
+
+
+@require_admin_access
+def sync_artifacts_view(request):
+    try:
+        task = sync_all_users.delay()
+        messages.success(
+            request,
+            f"Синхронизация запущена (задача #{task.id})"
+        )
+    except Exception as e:
+        messages.error(
+            request,
+            f"Ошибка запуска синхронизации: {e}"
+        )
+
+    return redirect("wagtailsnippets_points_artifact:list")

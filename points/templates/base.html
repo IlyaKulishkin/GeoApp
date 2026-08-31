@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{{ page.title|default:"GeoApp" }}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% load static %}
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.6; }
+        .slider-container { display: flex; gap: 1rem; overflow-x: auto; padding: 1rem 0; }
+        .slide { flex: 0 0 auto; max-width: 300px; }
+        .slide img { width: 100%; height: auto; border-radius: 8px; }
+        .caption { margin-top: 0.5rem; font-size: 0.9rem; color: #555; }
+        .header-block { margin-bottom: 2rem; }
+        .header-block h2 { margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
